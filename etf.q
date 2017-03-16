@@ -1,22 +1,22 @@
-/ Read dataset
 c:`Date`Open`High`Low`Close`Volume`AdjClose;
 colStr:"DFFFFIF";
-.Q.fs[{`spy insert flip c!(colStr;",")0:x}]`:SPY.csv; / Just reading the SPY data for now, still building up the code. 
-/ Get rid of column header
+.Q.fs[{`spy insert flip c!(colStr;",")0:x}]`:SPY.csv;
 spy:spy[1+til(-1+count spy)];
-
-t:spy[`AdjClose];
+ta:spy[`AdjClose];
 n:1 2 3 5 10 20 40 60 120 250; / horizons
-r:{0^{(t[x]%t[x-y])-1}[til count t;x]}each n; / returns for various horizons
+l:til count ta;
+np:n!(1,1_prev n); / maintain previous horizons too
 
-/ Information set A -  Previous n days return and j lagged n days return, where j is equivalent to
-/ previous horizon (i.e. for 20 days horizon, number of lagged returns will be 10) for all ETFs.
-l:1+til (-1+count t);
-f:{[x;y;z;a]if[z<a;f[x;y;z+1;a]];0^t[x-z]%t[x-y-z]}; 
-xa:{f[l;x;0;prev x]}each n; / feature set xa - {rt−n,t,rt−n−1,t−1, ..., rt−n−j,t−j} 
+r:(`$"r",/:string n)!{0^{(ta[x]%ta[x-y])-1}[l;x]}each n; / returns for various horizons
 
-/ Information set B - Information Set B - Average volume for n days and j lagged average volume for n days, where j is
-/ equivalent to previous horizon for all ETFs.
-csum:0f;
-f:{[x;y;z;a]if[z<a;f[x;y;z+1;a]];csum::csum+t[x-y-z+1]};
-xb:{f[l;x;0;prev x];0^csum%prev x}each n;
+f:{[t;nn;j;ph]:0f^ta[t-j]%ta[t-nn-j]}; 
+xa:(`$"xa",/:string n)!{f[l;x;np x;np x]}each n; / feature set xa - {rt−n,t,rt−n−1,t−1, ..., rt−n−j,t−j} 
+
+v:spy[`Volume];
+f:{[t;n;ph]c:0;while[c<n;csum+:0^v[t-n-ph+c];c+:1];:csum}
+xb:(`$"xb",/:string n)!{csum:f[l;x;np x];avg each csum}each n;
+
+ftbl:((flip r), '(flip xa)),'flip xb;
+/ Just get all tables individually (r1, xa1, xb1, y1, r2, xa2, xb2, y2...)
+indi:n!{tbl:flip tmp! ftbl[tmp:(raze over `$("r",(enlist "xa"),(enlist "xb")),/:\:string enlist x)];tbl:tbl,'([]y:tbl[`$raze("r",string enlist x)]>=0)}each n
+
