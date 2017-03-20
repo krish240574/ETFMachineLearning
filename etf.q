@@ -14,9 +14,14 @@ xa:(`$"xa",/:string n)!{f[l;x;np x;np x]}each n; / feature set xa - {rt−n,t,rt
 
 v:spy[`Volume];
 f:{[t;n;ph]c:0;while[c<n;csum+:0^v[t-n-ph+c];c+:1];:csum}
-xb:(`$"xb",/:string n)!{csum:f[l;x;np x];avg each csum}each n;
+xb:(`$"xb",/:string n)!{csum:f[l;x;np x];avg each csum}each n; / feature set xb - average returns for each horizon, lagged by previous horizon 
 
-ftbl:((flip r), '(flip xa)),'flip xb;
+k:flip value r,'xa,'xb;
+/ demean and descale all features (for SVM and RF)
+k:k-\:avg k;
+fn:{k[;x]%sdev k[;x]}each til count k[0];
+
+ftbl:flip ((key r), (key xa), (key xb) )! fn[];
 / Just get all tables individually (r1, xa1, xb1, y1, r2, xa2, xb2, y2...)
 indi:n!{tbl:flip tmp! ftbl[tmp:(raze over `$("r",(enlist "xa"),(enlist "xb")),/:\:string enlist x)];tbl:tbl,'([]y:tbl[`$raze("r",string enlist x)]>=0)}each n
 
