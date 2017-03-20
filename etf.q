@@ -1,6 +1,3 @@
-
-
-
 pd:{[tf]
 	ds::ds[1+til(-1+count ds)];
 	ta::ds[`AdjClose];
